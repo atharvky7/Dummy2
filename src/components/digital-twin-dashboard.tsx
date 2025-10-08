@@ -11,7 +11,6 @@ const DigitalTwinDashboard = () => {
   const [timelineValue, setTimelineValue] = useState<number>(23);
   const [isGreenMode, setIsGreenMode] = useState<boolean>(false);
   const [activeSensorId, setActiveSensorId] = useState<number | null>(null);
-  const [mapKey, setMapKey] = useState(0);
 
   useEffect(() => {
     setSensorData(getMockSensorData());
@@ -26,16 +25,9 @@ const DigitalTwinDashboard = () => {
     return sensorData.find(s => s.id === activeSensorId) ?? null;
   }, [activeSensorId, sensorData]);
 
-  // When the active sensor changes, we can update the map key to force a re-render if needed,
-  // although Popover from shadcn should handle positioning without a full map re-render.
-  useEffect(() => {
-    setMapKey(prev => prev + 1);
-  }, [activeSensorId]);
-
   return (
     <div className="w-full h-full relative">
       <MapView
-        key={mapKey}
         sensors={sensorData}
         timelineValue={timelineValue}
         isGreenMode={isGreenMode}

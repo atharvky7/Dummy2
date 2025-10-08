@@ -22,18 +22,18 @@ const getStatusColor = (value: number) => {
 };
 
 // Function to convert lat/lng to pixel coordinates on a static image
-const projectToImage = (lat: number, lng: number, mapCenter: { lat: number; lng: number }, imageSize: { width: number; height: number }, zoom: number) => {
+const projectToImage = (lat: number, lng: number, mapCenter: { lat: number; lng: number }, imageSize: { width: number; height: number }) => {
     // This is a simplified projection and might need tweaking for accuracy.
     // It assumes a linear mapping around the center.
     const mapBounds = {
-        north: mapCenter.lat + (0.005 * 1.2),
-        south: mapCenter.lat - (0.005 * 1.2),
-        east: mapCenter.lng + (0.01 * 1.2),
-        west: mapCenter.lng - (0.01 * 1.2),
+        north: mapCenter.lat + 0.0025,
+        south: mapCenter.lat - 0.0025,
+        east: mapCenter.lng + 0.005,
+        west: mapCenter.lng - 0.005,
     };
     
     const lngRatio = (lng - mapBounds.west) / (mapBounds.east - mapBounds.west);
-    const latRatio = (lat - mapBounds.north) / (mapBounds.south - mapBounds.north);
+    const latRatio = (mapBounds.north - lat) / (mapBounds.north - mapBounds.south);
 
     return {
         x: lngRatio * imageSize.width,
@@ -64,13 +64,14 @@ const MapView: React.FC<MapViewProps> = ({
             objectFit="cover"
             className="opacity-100"
             data-ai-hint="map city"
+            priority
         />
         <div className="absolute inset-0">
             {sensors.map((sensor) => {
-                const dataPoint = sensor.history[0];
+                const dataPoint = sensor.history[timelineValue];
                 if (!dataPoint) return null;
                 const color = getStatusColor(dataPoint.value);
-                const position = projectToImage(sensor.lat, sensor.lng, siteCenter, imageSize, 15);
+                const position = projectToImage(sensor.lat, sensor.lng, siteCenter, imageSize);
 
                 const markerStyle: React.CSSProperties = {
                     position: 'absolute',
@@ -82,6 +83,7 @@ const MapView: React.FC<MapViewProps> = ({
                     backgroundColor: color,
                     borderRadius: '50%',
                     border: '2px solid white',
+                    boxShadow: '0 0 0 2px black',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                 };
@@ -89,7 +91,7 @@ const MapView: React.FC<MapViewProps> = ({
                 return (
                     <Popover key={sensor.id} open={activeSensorId === sensor.id} onOpenChange={(open) => onSensorSelect(open ? sensor.id : null)}>
                         <PopoverTrigger asChild>
-                            <div style={markerStyle} onClick={() => onSensorSelect(sensor.id)} />
+                            <div style={markerStyle} onClick={() => onSensorSelect(sensor.id === activeSensorId ? null : sensor.id)} />
                         </PopoverTrigger>
                         {activeSensor && activeSensor.id === sensor.id && activeSensorDataPoint && (
                              <PopoverContent className="w-80 p-0 border-none shadow-xl" side="right" align="start" sideOffset={10}>
