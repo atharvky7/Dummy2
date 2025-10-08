@@ -104,21 +104,9 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
-  const mapRef = useRef<L.Map | null>(null);
-
-  useEffect(() => {
-    // This effect ensures that the map instance is properly destroyed when the component unmounts.
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
+  // We will no longer use a ref for the MapContainer itself.
   return (
     <MapContainer
-      ref={mapRef}
       center={siteCenter}
       zoom={17}
       style={{ height: '100%', width: '100%', zIndex: 10 }}
