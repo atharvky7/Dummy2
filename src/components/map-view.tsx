@@ -40,12 +40,13 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
   }, [sensors, timelineValue, map]);
 
   useEffect(() => {
-    map.on('popupclose', () => {
+    const handlePopupClose = () => {
       onSensorSelect(null);
-    });
+    };
+    map.on('popupclose', handlePopupClose);
 
     return () => {
-      map.off('popupclose');
+      map.off('popupclose', handlePopupClose);
     };
   }, [map, onSensorSelect]);
   
@@ -106,6 +107,7 @@ const MapView: React.FC<MapViewProps> = (props) => {
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
+    // This effect ensures that the map instance is properly destroyed when the component unmounts.
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
@@ -116,7 +118,7 @@ const MapView: React.FC<MapViewProps> = (props) => {
 
   return (
     <MapContainer
-      whenCreated={(mapInstance) => { mapRef.current = mapInstance }}
+      ref={mapRef}
       center={siteCenter}
       zoom={17}
       style={{ height: '100%', width: '100%', zIndex: 10 }}
