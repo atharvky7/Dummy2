@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
+import { TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet.heat';
-import type { SensorData, HistoryPoint } from '@/lib/types';
+import type { SensorData } from '@/lib/types';
 import SensorPopupContent from './sensor-popup-content';
 
 const siteCenter: L.LatLngExpression = [12.9716, 77.5946];
@@ -59,16 +59,18 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
         
         map.flyTo([sensor.lat, sensor.lng], 17, { animate: true, duration: 1 });
         // This is a workaround since react-leaflet's Popup doesn't directly expose autoPanOptions
-        map.options.autoPanPaddingTopRight = new L.Point(panelWidth, 50);
-        map.options.autoPanPaddingBottomLeft = new L.Point(50, 50);
+        (map.options as any).autoPanPaddingTopRight = new L.Point(panelWidth, 50);
+        (map.options as any).autoPanPaddingBottomLeft = new L.Point(50, 50);
       }
     } else {
         // Reset autopan padding when no sensor is selected
-        map.options.autoPanPaddingTopRight = new L.Point(0, 0);
-        map.options.autoPanPaddingBottomLeft = new L.Point(0, 0);
+        (map.options as any).autoPanPaddingTopRight = new L.Point(0, 0);
+        (map.options as any).autoPanPaddingBottomLeft = new L.Point(0, 0);
     }
   }, [activeSensorId, sensors, map]);
 
+
+  const activeSensor = sensors.find(s => s.id === activeSensorId);
 
   return (
     <>
@@ -95,14 +97,15 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
               },
             }}
           >
-            {isSelected && (
-              <Popup minWidth={320} autoPan>
-                <SensorPopupContent sensor={sensor} dataPoint={dataPoint} timelineValue={timelineValue} />
-              </Popup>
-            )}
           </CircleMarker>
         );
       })}
+
+      {activeSensor && activeSensor.history[timelineValue] && (
+        <Popup position={[activeSensor.lat, activeSensor.lng]} minWidth={320} autoPan>
+            <SensorPopupContent sensor={activeSensor} dataPoint={activeSensor.history[timelineValue]} timelineValue={timelineValue} />
+        </Popup>
+      )}
     </>
   );
 };
@@ -140,35 +143,21 @@ const MapView: React.FC<MapViewProps> = (props) => {
             // We are no longer using MapContainer. We are now using a simple div
             // and managing the map instance ourselves.
             // The TileLayer, ZoomControl, and MapLayers will be added to the existing map instance.
-            <MapContainer-placeholder map={mapRef.current}>
+            <MapContext.Provider value={{ map: mapRef.current }}>
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
                 <ZoomControl position="bottomright" />
                 <MapLayers {...props} />
-            </MapContainer-placeholder>
+            </MapContext.Provider>
         )}
     </div>
   );
 };
 
 // A placeholder component to bridge react-leaflet context
-const MapContainerPlaceholder: React.FC<{ map: L.Map; children: React.ReactNode }> = ({ map, children }) => {
-  const context = useMemo(() => ({ __version: '1', map }), [map]);
-  const LeafletProvider = (L.Control as any).extend({
-      onAdd: () => {
-          // This is a dummy control that does nothing, just to host the provider
-          const div = L.DomUtil.create('div');
-          return div;
-      }
-  });
-  
-  // Use React.createContext and Provider to pass down the map instance
-  const MapContextProvider = require('react-leaflet').MapContainer._context.Provider;
-
-  return <MapContextProvider value={context}>{children}</MapContextProvider>;
-};
+const MapContext = React.createContext<{map: L.Map} | null>(null);
 
 
 export default MapView;
