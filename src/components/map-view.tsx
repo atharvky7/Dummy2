@@ -58,7 +58,7 @@ const MapView: React.FC<MapViewProps> = ({
   return (
     <div className="relative w-full h-full">
         <Image 
-            src="https://storage.googleapis.com/aip-dev-rise-public-eu/static/49646b95-a4f6-49f3-a178-5776d51624c1.png" 
+            src="https://storage.googleapis.com/aip-dev-rise-public-eu/static/e1f57053-f726-4444-ac81-36423985b91b.png" 
             alt="Static map background"
             layout="fill"
             objectFit="cover"
