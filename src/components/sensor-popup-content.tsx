@@ -1,27 +1,36 @@
 'use client';
-import React, { useState, useTransition } from 'react';
+import React from 'react';
 import type { HistoryPoint, SensorData } from '@/lib/types';
 import SensorChart from './sensor-chart';
 import { Button } from './ui/button';
-import { analyzeFailureRisk } from '@/lib/actions';
-import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import { analyzeFailureRisk } from '@/lib/actions';
 import type { PredictEquipmentFailureOutput } from '@/ai/flows/predictive-maintenance-alerts';
 
 interface SensorPopupContentProps {
   sensor: SensorData;
   dataPoint: HistoryPoint;
   timelineValue: number;
+  isGreenMode: boolean;
 }
 
-const MetricDisplay = ({ label, value, unit, isGreen, greenValue }: { label: string; value: string; unit: string; isGreen: boolean; greenValue: string }) => {
+const MetricDisplay = ({ label, value, unit, isGreen, greenValue, originalValue }: { label: string; value: string; unit: string; isGreen: boolean; greenValue: string, originalValue: string }) => {
     if (isGreen) {
         return (
              <div className="flex justify-between items-baseline p-2 bg-gray-50 rounded-md">
                 <span className="text-sm text-gray-500">{label}</span>
                 <div className="text-right">
-                    <span className='text-gray-400 line-through mr-2'>{value}</span>
+                    <span className='text-gray-400 line-through mr-2'>{originalValue}</span>
                     <span className='text-emerald-600 font-bold'>{greenValue} {unit}</span>
                 </div>
             </div>
@@ -35,12 +44,10 @@ const MetricDisplay = ({ label, value, unit, isGreen, greenValue }: { label: str
     )
 }
 
-const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoint, timelineValue }) => {
-  const [isGreenMode, setIsGreenMode] = useState(false); // This should come from props in a real app
-  
-  const [isPredictionDialogOpen, setPredictionDialogOpen] = useState(false);
-  const [predictionData, setPredictionData] = useState<PredictEquipmentFailureOutput | null>(null);
-  const [isAnalyzing, startTransition] = useTransition();
+const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoint, timelineValue, isGreenMode }) => {
+  const [isPredictionDialogOpen, setPredictionDialogOpen] = React.useState(false);
+  const [predictionData, setPredictionData] = React.useState<PredictEquipmentFailureOutput | null>(null);
+  const [isAnalyzing, startTransition] = React.useTransition();
   const { toast } = useToast();
 
   const handleAnalyze = () => {
@@ -60,15 +67,16 @@ const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoi
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-card text-card-foreground rounded-xl shadow-lg">
       <h3 className="text-lg font-bold text-gray-800 mb-3">{sensor.name}</h3>
       <div className="space-y-2">
         <MetricDisplay
-            label="Current Reading"
+            label="Live metrics"
             value={dataPoint.value.toFixed(1)}
             unit={sensor.unit}
             isGreen={isGreenMode}
             greenValue={(dataPoint.value * 0.85).toFixed(1)}
+            originalValue={dataPoint.value.toFixed(1)}
         />
         <MetricDisplay
             label="Predicted (Next 6h)"
@@ -76,6 +84,7 @@ const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoi
             unit={sensor.unit}
             isGreen={isGreenMode}
             greenValue={(dataPoint.predicted * 0.85).toFixed(1)}
+            originalValue={dataPoint.predicted.toFixed(1)}
         />
         <MetricDisplay
             label="CO₂e Impact"
@@ -83,6 +92,7 @@ const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoi
             unit="kg"
             isGreen={isGreenMode}
             greenValue={(dataPoint.co2e * 0.72).toFixed(2)}
+            originalValue={dataPoint.co2e.toFixed(2)}
         />
       </div>
 
@@ -90,7 +100,7 @@ const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoi
         <SensorChart sensor={sensor} currentHour={timelineValue} isGreenMode={isGreenMode} />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 p-2">
         <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full">
             {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Analyze Failure Risk
