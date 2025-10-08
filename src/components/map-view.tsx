@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet.heat';
@@ -104,8 +104,13 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
+  // By adding a key that changes, we force React to unmount the old
+  // MapContainer and mount a new one, which prevents the initialization error.
+  const mapKey = useMemo(() => Date.now() + Math.random(), []);
+
   return (
     <MapContainer
+      key={mapKey}
       center={siteCenter}
       zoom={17}
       style={{ height: '100%', width: '100%', zIndex: 10 }}
@@ -121,4 +126,4 @@ const MapView: React.FC<MapViewProps> = (props) => {
   );
 };
 
-export default MapView;
+export default React.memo(MapView);
