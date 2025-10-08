@@ -108,21 +108,67 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    // This effect hook will manage the lifecycle of the Leaflet map.
+    // It ensures that we have a valid container and that any existing map is cleaned up.
+    
+    if (mapContainerRef.current && mapRef.current === null) {
+      // If the container exists but the map hasn't been initialized, create it.
+      mapRef.current = new L.Map(mapContainerRef.current, {
+        center: siteCenter,
+        zoom: 17,
+        zoomControl: false,
+      });
+    }
+
+    return () => {
+      // Cleanup function: This is the crucial part.
+      // When the component unmounts, we destroy the map instance.
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []); // The empty dependency array ensures this runs only once on mount and cleanup on unmount.
+
   return (
-    <MapContainer
-      center={siteCenter}
-      zoom={17}
-      style={{ height: '100%', width: '100%', zIndex: 10 }}
-      zoomControl={false}
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-      />
-      <ZoomControl position="bottomright" />
-      <MapLayers {...props} />
-    </MapContainer>
+    <div ref={mapContainerRef} style={{ height: '100%', width: '100%', zIndex: 10 }}>
+        {mapRef.current && (
+            // We are no longer using MapContainer. We are now using a simple div
+            // and managing the map instance ourselves.
+            // The TileLayer, ZoomControl, and MapLayers will be added to the existing map instance.
+            <MapContainer-placeholder map={mapRef.current}>
+                <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                <ZoomControl position="bottomright" />
+                <MapLayers {...props} />
+            </MapContainer-placeholder>
+        )}
+    </div>
   );
 };
+
+// A placeholder component to bridge react-leaflet context
+const MapContainerPlaceholder: React.FC<{ map: L.Map; children: React.ReactNode }> = ({ map, children }) => {
+  const context = useMemo(() => ({ __version: '1', map }), [map]);
+  const LeafletProvider = (L.Control as any).extend({
+      onAdd: () => {
+          // This is a dummy control that does nothing, just to host the provider
+          const div = L.DomUtil.create('div');
+          return div;
+      }
+  });
+  
+  // Use React.createContext and Provider to pass down the map instance
+  const MapContextProvider = require('react-leaflet').MapContainer._context.Provider;
+
+  return <MapContextProvider value={context}>{children}</MapContextProvider>;
+};
+
 
 export default MapView;

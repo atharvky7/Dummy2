@@ -36,14 +36,9 @@ const DigitalTwinDashboard = () => {
     return sensorData.find(s => s.id === activeSensorId) ?? null;
   }, [activeSensorId, sensorData]);
 
-  // By adding a key that changes, we force React to unmount the old
-  // MapView and mount a new one, which prevents the initialization error.
-  const mapKey = useMemo(() => Date.now() + Math.random(), [activeSensorId]);
-
   return (
     <div className="w-full h-full relative">
       <MapView
-        key={mapKey}
         sensors={sensorData}
         timelineValue={timelineValue}
         activeSensorId={activeSensorId}
