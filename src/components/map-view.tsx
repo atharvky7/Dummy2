@@ -103,8 +103,20 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
+  const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <MapContainer
+      whenCreated={(mapInstance) => { mapRef.current = mapInstance }}
       center={siteCenter}
       zoom={17}
       style={{ height: '100%', width: '100%', zIndex: 10 }}
