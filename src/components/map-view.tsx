@@ -104,7 +104,6 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
-  // We will no longer use a ref for the MapContainer itself.
   return (
     <MapContainer
       center={siteCenter}

@@ -12,10 +12,8 @@ const DigitalTwinDashboard = () => {
   const [timelineValue, setTimelineValue] = useState<number>(23);
   const [isGreenMode, setIsGreenMode] = useState<boolean>(false);
   const [activeSensorId, setActiveSensorId] = useState<number | null>(null);
-  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
     setSensorData(getMockSensorData());
   }, [])
   
@@ -37,10 +35,6 @@ const DigitalTwinDashboard = () => {
     if (activeSensorId === null) return null;
     return sensorData.find(s => s.id === activeSensorId) ?? null;
   }, [activeSensorId, sensorData]);
-
-  if (!isClient) {
-    return <Skeleton className="w-full h-full" />;
-  }
 
   return (
     <div className="w-full h-full relative">
