@@ -89,17 +89,16 @@ body {
 }
 
 @layer components {
-  /* Custom Leaflet popup styling */
-  .leaflet-popup-content-wrapper {
-      background: hsl(var(--card));
+  /* Custom Google Maps InfoWindow styling */
+  .gm-style .gm-style-iw-c {
+      padding: 0 !important;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-  .leaflet-popup-content {
-      margin: 0;
-      width: 320px !important;
+  .gm-style .gm-style-iw-d {
+      overflow: hidden !important;
   }
-  .leaflet-popup-tip {
-      background: hsl(var(--card));
+  .gm-style .gm-ui-hover-effect {
+      display: none !important;
   }
 }

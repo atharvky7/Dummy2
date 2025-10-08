@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import type { SensorData } from '@/lib/types';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import SensorPopupContent from './sensor-popup-content';
+import { Skeleton } from './ui/skeleton';
 
 interface MapViewProps {
   sensors: SensorData[];
@@ -14,126 +15,115 @@ interface MapViewProps {
   activeSensor: SensorData | null;
 }
 
+const containerStyle = {
+  width: '100%',
+  height: '100%',
+};
+
+const siteCenter = {
+  lat: 12.9716,
+  lng: 77.5946,
+};
+
+const mapOptions = {
+  styles: [
+    { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+    { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+    { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
+    { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+    { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+    { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road.arterial', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#dadada' }] },
+    { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+    { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+    { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9c9c9' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+  ],
+  disableDefaultUI: true,
+  zoomControl: true,
+};
+
 const getStatusColor = (value: number) => {
   if (value > 80) return '#ef4444'; // Red
   if (value > 60) return '#f59e0b'; // Amber
   return '#10b981'; // Green
 };
 
-const DummyMap = ({ sensors, activeSensorId, onSensorSelect, timelineValue, isGreenMode, activeSensor }: MapViewProps) => {
+const MapView: React.FC<MapViewProps> = ({
+  sensors,
+  timelineValue,
+  isGreenMode,
+  activeSensorId,
+  onSensorSelect,
+  activeSensor,
+}) => {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+  });
+
   const activeSensorDataPoint = activeSensor ? activeSensor.history[timelineValue] : null;
 
-  // This is a hack to get the PopoverTrigger to be positioned correctly within the SVG
-  const ActiveSensorTrigger = () => {
-    if (!activeSensor) return null;
-    const scaledX = (activeSensor.lng - 77.5921) * 200000;
-    const scaledY = (activeSensor.lat - 12.9690) * 200000;
-    const color = getStatusColor(activeSensor.history[0].value);
-    
-    return (
-      <PopoverTrigger asChild>
-        <circle
-            cx={scaledX}
-            cy={scaledY}
-            r={10}
-            fill={color}
-            stroke={'#374151'}
-            strokeWidth={3}
-            onClick={() => onSensorSelect(activeSensor.id)}
-            style={{ cursor: 'pointer' }}
-        >
-            <title>{activeSensor.name}</title>
-        </circle>
-      </PopoverTrigger>
-    );
-  };
-
+  if (!isLoaded) return <Skeleton className="w-full h-full" />;
 
   return (
-    <div className="w-full h-full bg-[#f0f0f0] overflow-hidden relative">
-      <Popover open={!!activeSensor} onOpenChange={(isOpen) => !isOpen && onSensorSelect(null)}>
-        <svg width="100%" height="100%" viewBox="0 0 800 600">
-            {/* Roads */}
-            <path d="M 0 100 L 800 120" stroke="#dcdcdc" strokeWidth="15" fill="none" />
-            <path d="M 0 400 L 800 380" stroke="#dcdcdc" strokeWidth="20" fill="none" />
-            <path d="M 150 0 L 160 600" stroke="#dcdcdc" strokeWidth="12" fill="none" />
-            <path d="M 600 0 L 580 600" stroke="#dcdcdc" strokeWidth="18" fill="none" />
-            <path d="M 300 110 L 320 390" stroke="#dcdcdc" strokeWidth="8" fill="none" />
-            <path d="M 160 250 L 590 260" stroke="#dcdcdc" strokeWidth="10" fill="none" />
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={siteCenter}
+      zoom={15}
+      options={mapOptions}
+    >
+      {sensors.map((sensor) => {
+        const dataPoint = sensor.history[0];
+        if (!dataPoint) return null;
+        const color = getStatusColor(dataPoint.value);
+        
+        return (
+          <Marker
+            key={sensor.id}
+            position={{ lat: sensor.lat, lng: sensor.lng }}
+            onClick={() => onSensorSelect(sensor.id)}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              fillColor: color,
+              fillOpacity: 1,
+              strokeColor: 'white',
+              strokeWeight: 2,
+              scale: activeSensorId === sensor.id ? 10 : 6,
+            }}
+          />
+        );
+      })}
 
-            {/* Buildings / Houses */}
-            <rect x="50" y="20" width="80" height="60" fill="#a0aec0" />
-            <rect x="200" y="30" width="60" height="50" fill="#a0aec0" />
-            <rect x="350" y="50" width="120" height="40" fill="#a0aec0" />
-            <rect x="500" y="20" width="80" height="80" fill="#a0aec0" />
-            <rect x="650" y="40" width="100" height="60" fill="#a0aec0" />
-
-            <rect x="20" y="150" width="110" height="80" fill="#b0c4de" />
-            <rect x="200" y="150" width="80" height="80" fill="#b0c4de" />
-            <rect x="400" y="160" width="150" height="70" fill="#a0aec0" />
-            <rect x="650" y="150" width="120" height="90" fill="#b0c4de" />
-
-            <rect x="50" y="300" width="90" height="60" fill="#b0c4de" />
-            <rect x="200" y="310" width="70" height="50" fill="#a0aec0" />
-            <rect x="350" y="300" width="100" height="60" fill="#b0c4de" />
-
-            <rect x="30" y="450" width="100" height="100" fill="#a0aec0" />
-            <rect x="180" y="460" width="120" height="80" fill="#b0c4de" />
-            <rect x="350" y="450" width="200" height="120" fill="#a0aec0" />
-            <rect x="600" y="440" width="150" height="100" fill="#b0c4de" />
-
-            {/* Sensor Markers */}
-            {sensors.map(sensor => {
-              if (sensor.id === activeSensorId) return null; // Rendered separately by ActiveSensorTrigger
-              const dataPoint = sensor.history[0]; // Use a fixed point for stable color
-              if (!dataPoint) return null;
-
-              const color = getStatusColor(dataPoint.value);
-              const scaledX = (sensor.lng - 77.5921) * 200000;
-              const scaledY = (sensor.lat - 12.9690) * 200000;
-              
-              return (
-                  <circle
-                      key={sensor.id}
-                      cx={scaledX}
-                      cy={scaledY}
-                      r={6}
-                      fill={color}
-                      stroke={'white'}
-                      strokeWidth={2}
-                      onClick={() => onSensorSelect(sensor.id)}
-                      style={{ cursor: 'pointer' }}
-                  >
-                      <title>{sensor.name}</title>
-                  </circle>
-              );
-            })}
-            <ActiveSensorTrigger />
-        </svg>
-
-        {activeSensor && activeSensorDataPoint && (
-            <PopoverContent 
-              className="w-80 p-0" 
-              side="top" 
-              align="center" 
-              sideOffset={15}
-              style={{
-                position: 'absolute',
-                left: `${(activeSensor.lng - 77.5921) * 200000}px`,
-                top: `${(activeSensor.lat - 12.9690) * 200000}px`,
-                transform: 'translateX(-50%) translateY(-100%)',
-              }}
-            >
-                <SensorPopupContent sensor={activeSensor} dataPoint={activeSensorDataPoint} timelineValue={timelineValue} isGreenMode={isGreenMode} />
-            </PopoverContent>
-        )}
-      </Popover>
-    </div>
+      {activeSensor && activeSensorDataPoint && (
+        <InfoWindow
+          position={{ lat: activeSensor.lat, lng: activeSensor.lng }}
+          onCloseClick={() => onSensorSelect(null)}
+          options={{
+            pixelOffset: new window.google.maps.Size(0, -30),
+            disableAutoPan: true,
+          }}
+        >
+          <div className="w-80">
+            <SensorPopupContent
+              sensor={activeSensor}
+              dataPoint={activeSensorDataPoint}
+              timelineValue={timelineValue}
+              isGreenMode={isGreenMode}
+            />
+          </div>
+        </InfoWindow>
+      )}
+    </GoogleMap>
   );
-};
-
-const MapView: React.FC<MapViewProps> = (props) => {
-  return <DummyMap {...props} />;
 };
 
 export default MapView;

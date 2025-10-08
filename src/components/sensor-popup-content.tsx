@@ -67,7 +67,7 @@ const SensorPopupContent: React.FC<SensorPopupContentProps> = ({ sensor, dataPoi
   };
 
   return (
-    <div className="p-4 bg-card text-card-foreground rounded-xl shadow-lg">
+    <div className="p-1 bg-card text-card-foreground rounded-xl">
       <h3 className="text-lg font-bold text-gray-800 mb-3">{sensor.name}</h3>
       <div className="space-y-2">
         <MetricDisplay
