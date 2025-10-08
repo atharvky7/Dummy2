@@ -62,6 +62,10 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
         map.options.autoPanPaddingTopRight = new L.Point(panelWidth, 50);
         map.options.autoPanPaddingBottomLeft = new L.Point(50, 50);
       }
+    } else {
+        // Reset autopan padding when no sensor is selected
+        map.options.autoPanPaddingTopRight = new L.Point(0, 0);
+        map.options.autoPanPaddingBottomLeft = new L.Point(0, 0);
     }
   }, [activeSensorId, sensors, map]);
 
@@ -104,13 +108,8 @@ const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: M
 };
 
 const MapView: React.FC<MapViewProps> = (props) => {
-  // By adding a key that changes, we force React to unmount the old
-  // MapContainer and mount a new one, which prevents the initialization error.
-  const mapKey = useMemo(() => Date.now() + Math.random(), []);
-
   return (
     <MapContainer
-      key={mapKey}
       center={siteCenter}
       zoom={17}
       style={{ height: '100%', width: '100%', zIndex: 10 }}
@@ -126,4 +125,4 @@ const MapView: React.FC<MapViewProps> = (props) => {
   );
 };
 
-export default React.memo(MapView);
+export default MapView;
