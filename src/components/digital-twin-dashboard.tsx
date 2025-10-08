@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import type { SensorData } from '@/lib/types';
 import { getMockSensorData } from '@/lib/mock-data';
 import ControlsPanel from '@/components/controls-panel';
-import { Skeleton } from './ui/skeleton';
+import MapView from '@/components/map-view';
 
 const DigitalTwinDashboard = () => {
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
@@ -17,16 +16,6 @@ const DigitalTwinDashboard = () => {
     setSensorData(getMockSensorData());
   }, [])
   
-
-  const MapView = useMemo(
-    () =>
-      dynamic(() => import('@/components/map-view'), {
-        ssr: false,
-        loading: () => <Skeleton className="w-full h-full" />,
-      }),
-    []
-  );
-
   const handleSensorSelect = (sensorId: number | null) => {
     setActiveSensorId(sensorId);
   };

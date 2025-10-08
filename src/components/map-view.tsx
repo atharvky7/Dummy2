@@ -1,13 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useMemo } from 'react';
-import { TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet.heat';
+import React from 'react';
 import type { SensorData } from '@/lib/types';
-import SensorPopupContent from './sensor-popup-content';
-
-const siteCenter: L.LatLngExpression = [12.9716, 77.5946];
 
 interface MapViewProps {
   sensors: SensorData[];
@@ -22,142 +16,71 @@ const getStatusColor = (value: number) => {
   return '#10b981'; // Green
 };
 
-const MapLayers = ({ sensors, timelineValue, activeSensorId, onSensorSelect }: MapViewProps) => {
-  const map = useMap();
-  const heatLayerRef = useRef<L.HeatLayer | null>(null);
-
-  useEffect(() => {
-    if (!heatLayerRef.current) {
-      heatLayerRef.current = L.heatLayer([], { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
-    }
-
-    const heatData: L.LatLngTuple[] = sensors.map(sensor => {
-      const dataPoint = sensor.history[timelineValue];
-      return dataPoint ? [sensor.lat, sensor.lng, dataPoint.value / 100] : [0,0,0];
-    }).filter(p => p[2] > 0) as L.LatLngTuple[];
-
-    heatLayerRef.current.setLatLngs(heatData);
-  }, [sensors, timelineValue, map]);
-
-  useEffect(() => {
-    const handlePopupClose = () => {
-      onSensorSelect(null);
-    };
-    map.on('popupclose', handlePopupClose);
-
-    return () => {
-      map.off('popupclose', handlePopupClose);
-    };
-  }, [map, onSensorSelect]);
-  
-  useEffect(() => {
-    if (activeSensorId !== null) {
-      const sensor = sensors.find(s => s.id === activeSensorId);
-      if (sensor) {
-        const panelElement = document.querySelector('.absolute.top-4.right-4');
-        const panelWidth = panelElement ? (panelElement as HTMLElement).offsetWidth + 24 : 420;
-        
-        map.flyTo([sensor.lat, sensor.lng], 17, { animate: true, duration: 1 });
-        // This is a workaround since react-leaflet's Popup doesn't directly expose autoPanOptions
-        (map.options as any).autoPanPaddingTopRight = new L.Point(panelWidth, 50);
-        (map.options as any).autoPanPaddingBottomLeft = new L.Point(50, 50);
-      }
-    } else {
-        // Reset autopan padding when no sensor is selected
-        (map.options as any).autoPanPaddingTopRight = new L.Point(0, 0);
-        (map.options as any).autoPanPaddingBottomLeft = new L.Point(0, 0);
-    }
-  }, [activeSensorId, sensors, map]);
-
-
-  const activeSensor = sensors.find(s => s.id === activeSensorId);
-
+const DummyMap = ({ sensors, activeSensorId, onSensorSelect }: MapViewProps) => {
   return (
-    <>
-      {sensors.map(sensor => {
-        const dataPoint = sensor.history[timelineValue];
-        if (!dataPoint) return null;
+    <div className="w-full h-full bg-[#f0f0f0] overflow-hidden relative">
+      <svg width="100%" height="100%" viewBox="0 0 800 600">
+        {/* Roads */}
+        <path d="M 0 100 L 800 120" stroke="#dcdcdc" strokeWidth="15" fill="none" />
+        <path d="M 0 400 L 800 380" stroke="#dcdcdc" strokeWidth="20" fill="none" />
+        <path d="M 150 0 L 160 600" stroke="#dcdcdc" strokeWidth="12" fill="none" />
+        <path d="M 600 0 L 580 600" stroke="#dcdcdc" strokeWidth="18" fill="none" />
+        <path d="M 300 110 L 320 390" stroke="#dcdcdc" strokeWidth="8" fill="none" />
+        <path d="M 160 250 L 590 260" stroke="#dcdcdc" strokeWidth="10" fill="none" />
 
-        const isSelected = sensor.id === activeSensorId;
-        const color = getStatusColor(dataPoint.value);
-        
-        return (
-          <CircleMarker
-            key={sensor.id}
-            center={[sensor.lat, sensor.lng]}
-            radius={isSelected ? 12 : 8}
-            fillColor={color}
-            color={isSelected ? '#374151' : 'white'}
-            weight={isSelected ? 4 : 2}
-            opacity={1}
-            fillOpacity={0.9}
-            eventHandlers={{
-              click: () => {
-                onSensorSelect(sensor.id);
-              },
-            }}
-          >
-          </CircleMarker>
-        );
-      })}
+        {/* Buildings / Houses */}
+        <rect x="50" y="20" width="80" height="60" fill="#a0aec0" />
+        <rect x="200" y="30" width="60" height="50" fill="#a0aec0" />
+        <rect x="350" y="50" width="120" height="40" fill="#a0aec0" />
+        <rect x="500" y="20" width="80" height="80" fill="#a0aec0" />
+        <rect x="650" y="40" width="100" height="60" fill="#a0aec0" />
 
-      {activeSensor && activeSensor.history[timelineValue] && (
-        <Popup position={[activeSensor.lat, activeSensor.lng]} minWidth={320} autoPan>
-            <SensorPopupContent sensor={activeSensor} dataPoint={activeSensor.history[timelineValue]} timelineValue={timelineValue} />
-        </Popup>
-      )}
-    </>
-  );
-};
+        <rect x="20" y="150" width="110" height="80" fill="#b0c4de" />
+        <rect x="200" y="150" width="80" height="80" fill="#b0c4de" />
+        <rect x="400" y="160" width="150" height="70" fill="#a0aec0" />
+        <rect x="650" y="150" width="120" height="90" fill="#b0c4de" />
 
-const MapView: React.FC<MapViewProps> = (props) => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
+        <rect x="50" y="300" width="90" height="60" fill="#b0c4de" />
+        <rect x="200" y="310" width="70" height="50" fill="#a0aec0" />
+        <rect x="350" y="300" width="100" height="60" fill="#b0c4de" />
 
-  useEffect(() => {
-    // This effect hook will manage the lifecycle of the Leaflet map.
-    // It ensures that we have a valid container and that any existing map is cleaned up.
-    
-    if (mapContainerRef.current && mapRef.current === null) {
-      // If the container exists but the map hasn't been initialized, create it.
-      mapRef.current = new L.Map(mapContainerRef.current, {
-        center: siteCenter,
-        zoom: 17,
-        zoomControl: false,
-      });
-    }
+        <rect x="30" y="450" width="100" height="100" fill="#a0aec0" />
+        <rect x="180" y="460" width="120" height="80" fill="#b0c4de" />
+        <rect x="350" y="450" width="200" height="120" fill="#a0aec0" />
+        <rect x="600" y="440" width="150" height="100" fill="#b0c4de" />
 
-    return () => {
-      // Cleanup function: This is the crucial part.
-      // When the component unmounts, we destroy the map instance.
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []); // The empty dependency array ensures this runs only once on mount and cleanup on unmount.
+        {/* Sensor Markers */}
+        {sensors.map(sensor => {
+          const dataPoint = sensor.history[0]; // Use a fixed point for stable color
+          if (!dataPoint) return null;
+          const isSelected = sensor.id === activeSensorId;
+          const color = getStatusColor(dataPoint.value);
+          const scaledX = (sensor.lng - 77.5921) * 200000;
+          const scaledY = (sensor.lat - 12.9690) * 200000;
 
-  return (
-    <div ref={mapContainerRef} style={{ height: '100%', width: '100%', zIndex: 10 }}>
-        {mapRef.current && (
-            // We are no longer using MapContainer. We are now using a simple div
-            // and managing the map instance ourselves.
-            // The TileLayer, ZoomControl, and MapLayers will be added to the existing map instance.
-            <MapContext.Provider value={{ map: mapRef.current }}>
-                <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                />
-                <ZoomControl position="bottomright" />
-                <MapLayers {...props} />
-            </MapContext.Provider>
-        )}
+          return (
+            <circle
+              key={sensor.id}
+              cx={scaledX}
+              cy={scaledY}
+              r={isSelected ? 10 : 6}
+              fill={color}
+              stroke={isSelected ? '#374151' : 'white'}
+              strokeWidth={isSelected ? 3 : 2}
+              onClick={() => onSensorSelect(sensor.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              <title>{sensor.name}</title>
+            </circle>
+          );
+        })}
+      </svg>
     </div>
   );
 };
 
-// A placeholder component to bridge react-leaflet context
-const MapContext = React.createContext<{map: L.Map} | null>(null);
-
+const MapView: React.FC<MapViewProps> = (props) => {
+  return <DummyMap {...props} />;
+};
 
 export default MapView;
